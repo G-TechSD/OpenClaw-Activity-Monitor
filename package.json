@@ -1,0 +1,19 @@
+{
+  "name": "openclaw-activity-monitor",
+  "version": "1.0.0",
+  "description": "Watchdog service ensuring OpenClaw/Clawdbot agents are always responsive",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node src/test.js",
+    "install-service": "sudo node scripts/install-systemd.js"
+  },
+  "keywords": ["openclaw", "clawdbot", "watchdog", "monitoring", "agent"],
+  "author": "G-TechSD",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
