@@ -1,46 +1,27 @@
 #!/usr/bin/env node
 /**
- * OpenClaw Activity Monitor
+ * OpenClaw Activity Monitor - Daemon
  * 
- * Watchdog service that ensures OpenClaw/Clawdbot agents are always responsive.
- * Monitors agent health, restarts unresponsive agents, and logs all activity.
+ * Runs as a background service, monitoring:
+ * - Agent health and responsiveness
+ * - System performance (CPU, memory, disk)
+ * - Git repository activity
  */
 
-import { spawn, exec } from 'child_process';
-import { promisify } from 'util';
 import fs from 'fs/promises';
-import path from 'path';
-
-const execAsync = promisify(exec);
-
-// Configuration
-const CONFIG = {
-  // How often to check agent health (ms)
-  healthCheckInterval: 30000, // 30 seconds
-  
-  // Max time to wait for agent response before considering it dead (ms)
-  responseTimeout: 60000, // 60 seconds
-  
-  // How many consecutive failures before restart
-  maxFailures: 3,
-  
-  // Cooldown between restart attempts (ms)
-  restartCooldown: 10000, // 10 seconds
-  
-  // Log file location
-  logFile: '/var/log/openclaw-activity-monitor.log',
-  
-  // Fallback log if no write access to /var/log
-  fallbackLogFile: './activity-monitor.log',
-  
-  // Agents to monitor
-  agents: [
-    { name: 'main', command: 'openclaw agent --agent main' },
-  ],
-  
-  // Gateway check
-  gatewayEndpoint: 'http://localhost:3456/health',
-};
+import {
+  CONFIG,
+  formatUptime,
+  formatBytes,
+  getSystemPerformance,
+  checkPerformanceAlerts,
+  getAllRepoStatuses,
+  checkGateway,
+  startGateway,
+  checkAgentHealth,
+  restartAgent,
+  getAgentActivity,
+} from './lib.js';
 
 // State tracking
 const state = {
@@ -49,6 +30,15 @@ const state = {
   totalChecks: 0,
   totalRestarts: 0,
   lastCheck: null,
+  performance: {
+    history: [],
+    maxHistory: 100,
+  },
+  repos: new Map(),
+  activity: {
+    sessions: [],
+    lastUpdate: null,
+  },
 };
 
 // Logging
@@ -57,90 +47,19 @@ async function log(level, message, data = {}) {
   const entry = { timestamp, level, message, ...data };
   const line = JSON.stringify(entry);
   
-  console[level === 'error' ? 'error' : 'log'](`[${timestamp}] [${level.toUpperCase()}] ${message}`, data);
+  console[level === 'error' ? 'error' : 'log'](`[${timestamp}] [${level.toUpperCase()}] ${message}`, Object.keys(data).length ? data : '');
   
   try {
     await fs.appendFile(CONFIG.logFile, line + '\n');
   } catch {
     try {
       await fs.appendFile(CONFIG.fallbackLogFile, line + '\n');
-    } catch (e) {
-      // Silent fail on log write
+    } catch {
+      // Silent fail
     }
   }
 }
 
-// Check if OpenClaw gateway is running
-async function checkGateway() {
-  try {
-    const { stdout } = await execAsync('openclaw gateway status', { timeout: 10000 });
-    return stdout.includes('running') || stdout.includes('Gateway is running');
-  } catch {
-    return false;
-  }
-}
-
-// Start OpenClaw gateway
-async function startGateway() {
-  try {
-    await log('info', 'Starting OpenClaw gateway...');
-    await execAsync('openclaw gateway start', { timeout: 30000 });
-    await new Promise(r => setTimeout(r, 5000)); // Wait for startup
-    return await checkGateway();
-  } catch (error) {
-    await log('error', 'Failed to start gateway', { error: error.message });
-    return false;
-  }
-}
-
-// Check agent responsiveness by sending a test message
-async function checkAgentHealth(agentName) {
-  try {
-    // Use openclaw status to check agent health
-    const { stdout } = await execAsync('openclaw status', { timeout: CONFIG.responseTimeout });
-    
-    // Parse status output
-    const isHealthy = stdout.includes('Gateway') && !stdout.includes('not running');
-    
-    return {
-      healthy: isHealthy,
-      responseTime: Date.now(),
-      details: stdout.substring(0, 200),
-    };
-  } catch (error) {
-    return {
-      healthy: false,
-      error: error.message,
-      responseTime: null,
-    };
-  }
-}
-
-// Restart an agent
-async function restartAgent(agentName) {
-  await log('warn', `Restarting agent: ${agentName}`);
-  state.totalRestarts++;
-  
-  try {
-    // First ensure gateway is running
-    const gatewayRunning = await checkGateway();
-    if (!gatewayRunning) {
-      await startGateway();
-    }
-    
-    // Restart the gateway (which manages agents)
-    await execAsync('openclaw gateway restart', { timeout: 60000 });
-    await new Promise(r => setTimeout(r, 5000)); // Wait for restart
-    
-    await log('info', `Agent ${agentName} restart completed`);
-    return true;
-  } catch (error) {
-    await log('error', `Failed to restart agent ${agentName}`, { error: error.message });
-    return false;
-  }
-}
-
-// Initialize agent state
 function initAgentState(agentName) {
   if (!state.agents.has(agentName)) {
     state.agents.set(agentName, {
@@ -156,25 +75,35 @@ function initAgentState(agentName) {
   return state.agents.get(agentName);
 }
 
-// Main health check loop
+// Main health check
 async function runHealthCheck() {
   state.totalChecks++;
   state.lastCheck = new Date().toISOString();
   
-  await log('debug', 'Running health check', { checkNumber: state.totalChecks });
+  await log('debug', 'Running comprehensive health check', { checkNumber: state.totalChecks });
   
-  // Check gateway first
+  // 1. System Performance
+  const perf = await getSystemPerformance();
+  state.performance.history.push(perf);
+  if (state.performance.history.length > state.performance.maxHistory) {
+    state.performance.history.shift();
+  }
+  
+  const perfAlerts = checkPerformanceAlerts(perf);
+  for (const alert of perfAlerts) {
+    await log(alert.level === 'critical' ? 'error' : 'warn', alert.message, { type: alert.type });
+  }
+  
+  // 2. Gateway & Agent Health
   const gatewayHealthy = await checkGateway();
   if (!gatewayHealthy) {
     await log('warn', 'Gateway not running, attempting to start...');
     const started = await startGateway();
     if (!started) {
       await log('error', 'Failed to start gateway, will retry next cycle');
-      return;
     }
   }
   
-  // Check each configured agent
   for (const agentConfig of CONFIG.agents) {
     const agentState = initAgentState(agentConfig.name);
     agentState.totalChecks++;
@@ -185,7 +114,6 @@ async function runHealthCheck() {
     if (health.healthy) {
       agentState.consecutiveFailures = 0;
       agentState.lastHealthy = new Date().toISOString();
-      await log('debug', `Agent ${agentConfig.name} is healthy`);
     } else {
       agentState.consecutiveFailures++;
       agentState.totalFailures++;
@@ -194,26 +122,71 @@ async function runHealthCheck() {
         error: health.error,
       });
       
-      // Check if we need to restart
       if (agentState.consecutiveFailures >= CONFIG.maxFailures) {
-        // Check cooldown
         const timeSinceLastRestart = agentState.lastRestart 
           ? Date.now() - new Date(agentState.lastRestart).getTime()
           : Infinity;
         
         if (timeSinceLastRestart > CONFIG.restartCooldown) {
-          await restartAgent(agentConfig.name);
+          await log('warn', `Restarting agent: ${agentConfig.name}`);
+          state.totalRestarts++;
+          const restarted = await restartAgent(agentConfig.name);
           agentState.lastRestart = new Date().toISOString();
           agentState.consecutiveFailures = 0;
-        } else {
-          await log('info', `Skipping restart (cooldown), will retry in ${Math.round((CONFIG.restartCooldown - timeSinceLastRestart) / 1000)}s`);
+          if (restarted) {
+            await log('info', `Agent ${agentConfig.name} restart completed`);
+          }
         }
       }
     }
   }
+  
+  // 3. Git Repos (every 5 checks)
+  if (state.totalChecks % 5 === 1) {
+    const repos = await getAllRepoStatuses();
+    for (const repo of repos) {
+      state.repos.set(repo.name, repo);
+    }
+  }
+  
+  // 4. Activity
+  const activity = await getAgentActivity();
+  state.activity = activity;
+  
+  // 5. Save state
+  await saveState();
 }
 
-// Generate status report
+async function saveState() {
+  const stateData = {
+    startTime: state.startTime,
+    totalChecks: state.totalChecks,
+    totalRestarts: state.totalRestarts,
+    lastCheck: state.lastCheck,
+    agents: Object.fromEntries(state.agents),
+    repos: Object.fromEntries(state.repos),
+    activity: state.activity,
+    performance: {
+      latest: state.performance.history[state.performance.history.length - 1],
+    },
+  };
+  
+  try {
+    await fs.writeFile(CONFIG.stateFile, JSON.stringify(stateData, null, 2));
+  } catch {}
+}
+
+async function loadState() {
+  try {
+    const data = await fs.readFile(CONFIG.stateFile, 'utf-8');
+    const saved = JSON.parse(data);
+    await log('info', 'Found previous state', { 
+      previousChecks: saved.totalChecks,
+      previousRestarts: saved.totalRestarts,
+    });
+  } catch {}
+}
+
 function getStatus() {
   const uptime = Date.now() - state.startTime;
   const agents = {};
@@ -229,38 +202,121 @@ function getStatus() {
     };
   }
   
+  const latestPerf = state.performance.history[state.performance.history.length - 1];
+  
   return {
-    uptime: Math.round(uptime / 1000),
-    uptimeHuman: `${Math.floor(uptime / 3600000)}h ${Math.floor((uptime % 3600000) / 60000)}m`,
-    totalChecks: state.totalChecks,
-    totalRestarts: state.totalRestarts,
-    lastCheck: state.lastCheck,
+    monitor: {
+      uptime: Math.round(uptime / 1000),
+      uptimeHuman: formatUptime(uptime / 1000),
+      totalChecks: state.totalChecks,
+      totalRestarts: state.totalRestarts,
+      lastCheck: state.lastCheck,
+    },
     agents,
+    performance: latestPerf ? {
+      cpu: `${latestPerf.cpu.usage}%`,
+      memory: `${latestPerf.memory.percent}% (${formatBytes(latestPerf.memory.used)} / ${formatBytes(latestPerf.memory.total)})`,
+      disk: `${latestPerf.disk.percent}%`,
+      load: latestPerf.cpu.loadAvg.join(', '),
+      systemUptime: latestPerf.system.uptimeHuman,
+    } : null,
+    repos: Object.fromEntries([...state.repos].map(([name, repo]) => [
+      name,
+      repo.error ? { error: repo.error } : {
+        branch: repo.branch,
+        latestCommit: repo.latestCommit?.message?.substring(0, 50),
+        uncommittedChanges: repo.uncommittedChanges,
+        ahead: repo.ahead,
+        behind: repo.behind,
+      }
+    ])),
+    activity: {
+      sessionCount: state.activity.sessions?.length || 0,
+      lastUpdate: state.activity.lastUpdate,
+    },
   };
 }
 
-// Main entry point
+function getDetailedReport() {
+  const status = getStatus();
+  const repos = [...state.repos.values()];
+  
+  let report = '📊 **OpenClaw Activity Monitor Report**\n\n';
+  
+  // Performance
+  report += '🖥️ **System Performance**\n';
+  if (status.performance) {
+    report += `  CPU: ${status.performance.cpu} | Load: ${status.performance.load}\n`;
+    report += `  Memory: ${status.performance.memory}\n`;
+    report += `  Disk: ${status.performance.disk}\n`;
+    report += `  System Uptime: ${status.performance.systemUptime}\n`;
+  }
+  report += '\n';
+  
+  // Agent Health
+  report += '🤖 **Agent Health**\n';
+  for (const [name, agent] of Object.entries(status.agents)) {
+    const icon = agent.healthy ? '✅' : '❌';
+    report += `  ${icon} ${name}: ${agent.healthy ? 'Healthy' : `${agent.consecutiveFailures} failures`}\n`;
+    if (agent.lastRestart) report += `    Last restart: ${agent.lastRestart}\n`;
+  }
+  report += '\n';
+  
+  // Git Repos
+  report += '📁 **Repository Status**\n';
+  for (const repo of repos) {
+    if (repo.error) {
+      report += `  ❌ ${repo.name}: ${repo.error}\n`;
+      continue;
+    }
+    const changes = repo.uncommittedChanges > 0 ? ` (${repo.uncommittedChanges} uncommitted)` : '';
+    const sync = repo.ahead || repo.behind ? ` ↑${repo.ahead} ↓${repo.behind}` : '';
+    report += `  📦 ${repo.name} [${repo.branch}]${changes}${sync}\n`;
+    if (repo.latestCommit) {
+      report += `    └─ ${repo.latestCommit.shortHash}: ${repo.latestCommit.message?.substring(0, 40)}... (${repo.latestCommit.relTime})\n`;
+    }
+  }
+  report += '\n';
+  
+  // Monitor Stats
+  report += '📈 **Monitor Stats**\n';
+  report += `  Running for: ${status.monitor.uptimeHuman}\n`;
+  report += `  Health checks: ${status.monitor.totalChecks}\n`;
+  report += `  Agent restarts: ${status.monitor.totalRestarts}\n`;
+  
+  return report;
+}
+
+// Main
 async function main() {
   await log('info', '🔍 OpenClaw Activity Monitor starting...', {
     healthCheckInterval: CONFIG.healthCheckInterval,
     responseTimeout: CONFIG.responseTimeout,
     maxFailures: CONFIG.maxFailures,
+    reposMonitored: CONFIG.repos.length,
   });
+  
+  await loadState();
   
   // Initial health check
   await runHealthCheck();
   
+  // Log initial status
+  console.log('\n' + getDetailedReport());
+  
   // Schedule periodic checks
   setInterval(runHealthCheck, CONFIG.healthCheckInterval);
   
-  // Handle graceful shutdown
+  // Handle shutdown
   process.on('SIGTERM', async () => {
     await log('info', 'Received SIGTERM, shutting down...');
+    await saveState();
     process.exit(0);
   });
   
   process.on('SIGINT', async () => {
     await log('info', 'Received SIGINT, shutting down...');
+    await saveState();
     process.exit(0);
   });
   
@@ -270,8 +326,8 @@ async function main() {
   });
 }
 
-// Export for testing
-export { checkGateway, checkAgentHealth, restartAgent, getStatus, CONFIG };
+// Exports
+export { getStatus, getDetailedReport };
 
 // Run if executed directly
 main().catch(async (error) => {

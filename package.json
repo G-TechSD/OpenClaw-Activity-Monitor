@@ -1,16 +1,23 @@
 {
   "name": "openclaw-activity-monitor",
-  "version": "1.0.0",
-  "description": "Watchdog service ensuring OpenClaw/Clawdbot agents are always responsive",
+  "version": "1.1.0",
+  "description": "Comprehensive monitoring for OpenClaw/Clawdbot: agent health, system performance, git repos, activity",
   "main": "src/index.js",
+  "bin": {
+    "oam": "src/cli.js",
+    "openclaw-monitor": "src/cli.js"
+  },
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "test": "node src/test.js",
+    "status": "node src/cli.js status",
+    "repos": "node src/cli.js repos",
+    "perf": "node src/cli.js perf",
     "install-service": "sudo node scripts/install-systemd.js"
   },
-  "keywords": ["openclaw", "clawdbot", "watchdog", "monitoring", "agent"],
+  "keywords": ["openclaw", "clawdbot", "watchdog", "monitoring", "agent", "performance", "git"],
   "author": "G-TechSD",
   "license": "MIT",
   "dependencies": {

@@ -1,0 +1,307 @@
+{
+  "startTime": 1770015525683,
+  "totalChecks": 1,
+  "totalRestarts": 0,
+  "lastCheck": "2026-02-02T06:58:45.689Z",
+  "agents": {
+    "main": {
+      "name": "main",
+      "consecutiveFailures": 0,
+      "lastHealthy": "2026-02-02T06:58:51.830Z",
+      "lastCheck": "2026-02-02T06:58:48.668Z",
+      "totalChecks": 1,
+      "totalFailures": 0,
+      "lastRestart": null
+    }
+  },
+  "repos": {
+    "Claudia-Coder": {
+      "name": "Claudia-Coder",
+      "path": "/home/johnny-test/clawd/Claudia-Coder",
+      "timestamp": "2026-02-02T06:58:51.831Z",
+      "branch": "main",
+      "latestCommit": {
+        "hash": "8397e7f04073ae008d4653c096b95b3a18e3c873",
+        "shortHash": "8397e7f",
+        "message": "test: Add speech recognition utility tests and fix vitest config",
+        "author": "Agent K",
+        "relTime": "73 minutes ago"
+      },
+      "uncommittedChanges": 0,
+      "changedFiles": [],
+      "ahead": 1,
+      "behind": 0,
+      "recentCommits": [
+        {
+          "shortHash": "8397e7f",
+          "message": "test: Add speech recognition utility tests and fix vitest config",
+          "author": "Agent K",
+          "relTime": "73 minutes ago"
+        },
+        {
+          "shortHash": "9af23e4",
+          "message": "fix: Mic auto-send race condition - wait for transcript finalization",
+          "author": "Bill Griffith",
+          "relTime": "74 minutes ago"
+        },
+        {
+          "shortHash": "a21ad70",
+          "message": "license: Switch to Apache 2.0 for attribution requirements",
+          "author": "Bill Griffith",
+          "relTime": "2 hours ago"
+        },
+        {
+          "shortHash": "da4e046",
+          "message": "chore: Add MIT License",
+          "author": "Bill Griffith",
+          "relTime": "2 hours ago"
+        },
+        {
+          "shortHash": "6526a75",
+          "message": "perf: Add status caching and polling throttle for Emergent Terminal",
+          "author": "Bill Griffith",
+          "relTime": "2 hours ago"
+        }
+      ],
+      "remotes": [
+        "origin"
+      ]
+    },
+    "claudiator": {
+      "name": "claudiator",
+      "path": "/home/johnny-test/clawd/claudiator",
+      "timestamp": "2026-02-02T06:58:51.832Z",
+      "branch": "main",
+      "latestCommit": {
+        "hash": "ab63a6a9cc9164c883578bd5fc299b58a1adae93",
+        "shortHash": "ab63a6a",
+        "message": "chore: Add package metadata for release",
+        "author": "Agent K",
+        "relTime": "61 minutes ago"
+      },
+      "uncommittedChanges": 0,
+      "changedFiles": [],
+      "ahead": 2,
+      "behind": 0,
+      "recentCommits": [
+        {
+          "shortHash": "ab63a6a",
+          "message": "chore: Add package metadata for release",
+          "author": "Agent K",
+          "relTime": "61 minutes ago"
+        },
+        {
+          "shortHash": "4074448",
+          "message": "test: Add vitest test suite for auth and utils modules",
+          "author": "Agent K",
+          "relTime": "78 minutes ago"
+        },
+        {
+          "shortHash": "f873051",
+          "message": "fix: Disconnect main terminal when popping out to prevent dual connection",
+          "author": "Ganesha",
+          "relTime": "6 days ago"
+        },
+        {
+          "shortHash": "865c9eb",
+          "message": "fix: TerminalEmulator sends reconnect command when tmuxSessionName provided",
+          "author": "Ganesha",
+          "relTime": "6 days ago"
+        },
+        {
+          "shortHash": "3ae6672",
+          "message": "fix: Claude Code path and tmux session persistence",
+          "author": "Ganesha",
+          "relTime": "6 days ago"
+        }
+      ],
+      "remotes": [
+        "gitlab",
+        "origin"
+      ]
+    },
+    "emergent-terminal": {
+      "name": "emergent-terminal",
+      "path": "/home/johnny-test/clawd/emergent-terminal",
+      "timestamp": "2026-02-02T06:58:51.832Z",
+      "branch": "main",
+      "latestCommit": {
+        "hash": "bfb5bb2ddd31f6f8852cb1a6bf0e8181456cec10",
+        "shortHash": "bfb5bb2",
+        "message": "chore: Prepare for npm publish",
+        "author": "Agent K",
+        "relTime": "62 minutes ago"
+      },
+      "uncommittedChanges": 0,
+      "changedFiles": [],
+      "ahead": 1,
+      "behind": 0,
+      "recentCommits": [
+        {
+          "shortHash": "bfb5bb2",
+          "message": "chore: Prepare for npm publish",
+          "author": "Agent K",
+          "relTime": "62 minutes ago"
+        },
+        {
+          "shortHash": "bc09afc",
+          "message": "test: Add vitest test suite for token management and session buffer",
+          "author": "Ganesha",
+          "relTime": "79 minutes ago"
+        },
+        {
+          "shortHash": "48a6906",
+          "message": "license: Switch to Apache 2.0 for attribution requirements",
+          "author": "Ganesha",
+          "relTime": "2 hours ago"
+        },
+        {
+          "shortHash": "795cd7b",
+          "message": "chore: Add MIT License",
+          "author": "Ganesha",
+          "relTime": "2 hours ago"
+        },
+        {
+          "shortHash": "dedbbcc",
+          "message": "Add Playwright E2E tests with screenshots",
+          "author": "G-Tech SD",
+          "relTime": "3 hours ago"
+        }
+      ],
+      "remotes": [
+        "gitlab",
+        "origin"
+      ]
+    },
+    "ganesha": {
+      "name": "ganesha",
+      "path": "/home/johnny-test/clawd/ganesha",
+      "timestamp": "2026-02-02T06:58:51.834Z",
+      "branch": "main",
+      "latestCommit": {
+        "hash": "61ae047454e77c72a7ce6c18b08992d1c760de8d",
+        "shortHash": "61ae047",
+        "message": "fix: Auto-enable puppeteer MCP on first run",
+        "author": "Bill Griffith",
+        "relTime": "10 days ago"
+      },
+      "uncommittedChanges": 0,
+      "changedFiles": [],
+      "ahead": 0,
+      "behind": 0,
+      "recentCommits": [
+        {
+          "shortHash": "61ae047",
+          "message": "fix: Auto-enable puppeteer MCP on first run",
+          "author": "Bill Griffith",
+          "relTime": "10 days ago"
+        },
+        {
+          "shortHash": "74b6261",
+          "message": "fix: Add JSON format detection for tool calls",
+          "author": "Bill Griffith",
+          "relTime": "10 days ago"
+        },
+        {
+          "shortHash": "465457b",
+          "message": "fix: Fix provider loading order and add error logging to sessions",
+          "author": "Bill Griffith",
+          "relTime": "12 days ago"
+        },
+        {
+          "shortHash": "b4296b4",
+          "message": "fix: Improve /provider command UX and fix stdin conflict",
+          "author": "Bill Griffith",
+          "relTime": "12 days ago"
+        },
+        {
+          "shortHash": "8b6e4ed",
+          "message": "fix: Filter date outputs from command extraction",
+          "author": "Bill Griffith",
+          "relTime": "12 days ago"
+        }
+      ],
+      "remotes": [
+        "origin"
+      ]
+    },
+    "voice-chat": {
+      "name": "voice-chat",
+      "path": "/home/johnny-test/clawd/voice-chat",
+      "timestamp": "2026-02-02T06:58:51.835Z",
+      "error": "Command failed: git -C \"/home/johnny-test/clawd/voice-chat\" rev-parse --abbrev-ref HEAD 2>/dev/null\n"
+    },
+    "openclaw-activity-monitor": {
+      "name": "openclaw-activity-monitor",
+      "path": "/home/johnny-test/clawd/openclaw-activity-monitor",
+      "timestamp": "2026-02-02T06:58:51.837Z",
+      "branch": "main",
+      "latestCommit": {
+        "hash": "45b8d8bee8a3131a047f2c5f865a3be20f88966a",
+        "shortHash": "45b8d8b",
+        "message": "Initial commit: OpenClaw Activity Monitor watchdog service",
+        "author": "Agent K",
+        "relTime": "14 minutes ago"
+      },
+      "uncommittedChanges": 4,
+      "changedFiles": [
+        {
+          "status": "M",
+          "file": "ackage.json"
+        },
+        {
+          "status": "M",
+          "file": "src/index.js"
+        },
+        {
+          "status": "M",
+          "file": "src/test.js"
+        },
+        {
+          "status": "??",
+          "file": "src/cli.js"
+        }
+      ],
+      "ahead": 0,
+      "behind": 0,
+      "noUpstream": true,
+      "recentCommits": [
+        {
+          "shortHash": "45b8d8b",
+          "message": "Initial commit: OpenClaw Activity Monitor watchdog service",
+          "author": "Agent K",
+          "relTime": "14 minutes ago"
+        }
+      ],
+      "remotes": [
+        "github",
+        "gitlab"
+      ]
+    }
+  },
+  "activity": {
+    "sessions": {
+      "path": "/home/johnny-test/.openclaw/agents/main/sessions/sessions.json",
+      "count": 1,
+      "activeMinutes": null,
+      "sessions": [
+        {
+          "key": "agent:main:main",
+          "kind": "direct",
+          "updatedAt": 1770015392538,
+          "ageMs": 140727,
+          "sessionId": "31a78051-3ec5-429d-8e1c-0921dece5526",
+          "systemSent": true,
+          "abortedLastRun": false,
+          "inputTokens": 8,
+          "outputTokens": 143,
+          "totalTokens": 24935,
+          "model": "claude-opus-4-5-20251101",
+          "contextTokens": 200000
+        }
+      ]
+    },
+    "lastUpdate": "2026-02-02T06:58:53.321Z"
+  },
+  "performance": {}
+}

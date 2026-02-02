@@ -1,15 +1,15 @@
 # OpenClaw Activity Monitor 🔍
 
-A watchdog service that ensures OpenClaw/Clawdbot AI agents are always responsive. Monitors agent health, automatically restarts unresponsive agents, and logs all activity.
+Comprehensive monitoring for OpenClaw/Clawdbot AI agents. Monitors agent health, system performance, git repositories, and automatically restarts unresponsive agents.
 
 ## Features
 
-- 🔄 **Auto-restart**: Automatically restarts agents that become unresponsive
-- 📊 **Health monitoring**: Continuous health checks every 30 seconds
-- 📝 **Logging**: Full activity logging with timestamps
-- 🛡️ **Failure threshold**: Configurable consecutive failures before restart
-- ⏱️ **Cooldown protection**: Prevents restart loops
-- 🔧 **Systemd integration**: Run as a system service
+- 🤖 **Agent Health**: Continuous monitoring with auto-restart on failure
+- 🖥️ **System Performance**: CPU, memory, disk usage with configurable alerts
+- 📁 **Git Repos**: Track commits, branches, uncommitted changes, sync status
+- 📊 **Activity Tracking**: Session monitoring across all agents
+- 🔄 **Auto-Recovery**: Restarts agents after consecutive failures
+- ⚡ **CLI**: Quick status checks without running the daemon
 
 ## Quick Start
 
@@ -17,14 +17,59 @@ A watchdog service that ensures OpenClaw/Clawdbot AI agents are always responsiv
 # Install dependencies
 npm install
 
-# Run directly
-npm start
+# Quick status check (no daemon)
+npm run status
 
-# Run in development mode (auto-reload)
-npm run dev
+# Run daemon
+npm start
 
 # Run tests
 npm test
+```
+
+## CLI Commands
+
+```bash
+# Overview of everything
+node src/cli.js status
+
+# Detailed repository status
+node src/cli.js repos
+
+# System performance details
+node src/cli.js perf
+
+# Full status as JSON (for scripting)
+node src/cli.js json
+```
+
+### Example Output
+
+```
+📊 OpenClaw Activity Monitor - Quick Status
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🖥️  SYSTEM PERFORMANCE
+   CPU:     14.3% (8 cores)
+   Load:    1.78, 1.96, 1.77
+   Memory:  43% (3.3 GB / 7.8 GB)
+   Disk:    34%
+   Uptime:  6h 34m
+
+🤖 AGENT STATUS
+   Gateway: ✅ Running
+   Main:    ✅ Healthy
+
+📁 REPOSITORIES
+   ✅ Claudia-Coder             main       ✅ [↑1]
+      └─ 8397e7f: test: Add speech recognition utility tests
+         by Agent K (75 minutes ago)
+   ✅ ganesha                   main       ✅
+      └─ 61ae047: fix: Auto-enable puppeteer MCP
+         by Bill Griffith (10 days ago)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ## Install as System Service
@@ -32,9 +77,6 @@ npm test
 ```bash
 # Install as systemd service (requires sudo)
 sudo npm run install-service
-
-# Or manually
-sudo node scripts/install-systemd.js
 ```
 
 After installation:
@@ -51,8 +93,9 @@ sudo systemctl restart openclaw-activity-monitor
 
 ## Configuration
 
-Edit `src/index.js` CONFIG object:
+Edit `src/lib.js` CONFIG object:
 
+### Health Checks
 | Option | Default | Description |
 |--------|---------|-------------|
 | `healthCheckInterval` | 30000 | How often to check health (ms) |
@@ -60,34 +103,65 @@ Edit `src/index.js` CONFIG object:
 | `maxFailures` | 3 | Consecutive failures before restart |
 | `restartCooldown` | 10000 | Minimum time between restarts (ms) |
 
+### Performance Thresholds
+| Metric | Warning | Critical |
+|--------|---------|----------|
+| CPU | 80% | 95% |
+| Memory | 80% | 95% |
+| Disk | 85% | 95% |
+
+### Monitored Repos
+Add/remove repos in `CONFIG.repos`:
+```javascript
+repos: [
+  { name: 'my-project', path: '/path/to/repo' },
+]
+```
+
 ## How It Works
 
-1. **Gateway Check**: Verifies OpenClaw gateway is running
-2. **Agent Health**: Sends test messages to verify agent responsiveness
-3. **Failure Tracking**: Counts consecutive failures per agent
-4. **Auto-Restart**: Restarts agents after `maxFailures` consecutive failures
-5. **Cooldown**: Waits between restart attempts to prevent loops
+1. **Health Check Loop** (every 30s):
+   - Verify OpenClaw gateway is running
+   - Check agent responsiveness
+   - Collect system metrics
+   - Track git repository states
+
+2. **Auto-Recovery**:
+   - Count consecutive health check failures
+   - After 3 failures, restart the gateway/agent
+   - Cooldown prevents restart loops
+
+3. **Alerting**:
+   - Log warnings/errors for performance thresholds
+   - Track all restarts and failures
 
 ## Log Files
 
 - Primary: `/var/log/openclaw-activity-monitor.log`
-- Fallback: `./activity-monitor.log` (if no `/var/log` access)
+- Fallback: `./activity-monitor.log`
+- State: `./monitor-state.json`
 
-## API
+## API Usage
 
-When run as a module:
+Import functions directly:
 
 ```javascript
-import { checkGateway, checkAgentHealth, restartAgent, getStatus } from './src/index.js';
+import { 
+  getSystemPerformance,
+  getAllRepoStatuses,
+  checkGateway,
+  checkAgentHealth,
+} from './src/lib.js';
 
-// Check gateway status
-const isRunning = await checkGateway();
+// Get system metrics
+const perf = await getSystemPerformance();
+console.log(`CPU: ${perf.cpu.usage}%`);
 
-// Check specific agent health
-const health = await checkAgentHealth('main');
-
-// Get full status report
-const status = getStatus();
+// Check all repos
+const repos = await getAllRepoStatuses();
+for (const repo of repos) {
+  console.log(`${repo.name}: ${repo.uncommittedChanges} changes`);
+}
 ```
 
 ## License
